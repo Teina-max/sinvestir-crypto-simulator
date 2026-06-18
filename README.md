@@ -126,6 +126,8 @@ import { CryptoSimulator } from "@/components/simulator/crypto-simulator";
 <iframe src="https://sinvestir-crypto-simulator.vercel.app/embed" style="width:100%;border:0;height:900px" loading="lazy"></iframe>
 ```
 
+**Authentification & persistance par utilisateur** : volontairement **non implémentées** (cf. consignes : « inutile de réaliser réellement ces intégrations »). Le simulateur fonctionne sans compte — comme l'outil Fritzy d'origine — et reste **agnostique** : pour le brancher à votre suite, « Enregistrer / Partager » s'adosseraient à **votre Supabase Cloud + session existants** (table `simulations` liée à l'utilisateur, RLS), sans rien changer au cœur de calcul. La sidebar de la démo est une réplique visuelle de votre app-shell ; ses liens pointent vers `simulateurs.sinvestir.fr`.
+
 ---
 
 ## Limites (démo assumée)

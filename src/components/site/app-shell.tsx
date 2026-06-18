@@ -11,12 +11,15 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "./brand-logo";
 
+const APP = "https://simulateurs.sinvestir.fr";
+const SITE = "https://sinvestir.fr";
+
 const NAV = [
-  { icon: LayoutGrid, label: "Tableau de bord", active: false },
-  { icon: LineChart, label: "Les simulateurs", active: true },
-  { icon: GitCompareArrows, label: "Les comparateurs", active: false },
-  { icon: BookMarked, label: "Mes simulations", active: false },
-  { icon: Gift, label: "Formation offerte", active: false },
+  { icon: LayoutGrid, label: "Tableau de bord", href: APP, active: false },
+  { icon: LineChart, label: "Les simulateurs", href: APP, active: true },
+  { icon: GitCompareArrows, label: "Les comparateurs", href: APP, active: false },
+  { icon: BookMarked, label: "Mes simulations", href: APP, active: false },
+  { icon: Gift, label: "Formation offerte", href: SITE, active: false },
 ];
 
 /** Réplique de l'app-shell de la suite S'investir : sidebar + zone de contenu. */
@@ -38,9 +41,14 @@ function MobileHeader() {
   return (
     <header className="mb-4 flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 lg:hidden">
       <BrandLogo />
-      <span className="rounded-full bg-[#0049c6] px-3 py-1.5 text-xs font-medium text-white">
+      <a
+        href={APP}
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-full bg-[#0049c6] px-3 py-1.5 text-xs font-medium text-white"
+      >
         Créer un compte
-      </span>
+      </a>
     </header>
   );
 }
@@ -98,9 +106,12 @@ function Sidebar() {
 
         {/* navigation */}
         <nav className="mt-6 flex flex-col gap-1">
-          {NAV.map(({ icon: Icon, label, active }) => (
-            <span
+          {NAV.map(({ icon: Icon, label, href, active }) => (
+            <a
               key={label}
+              href={href}
+              target="_blank"
+              rel="noreferrer"
               aria-current={active ? "page" : undefined}
               className={
                 "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors " +
@@ -111,21 +122,36 @@ function Sidebar() {
             >
               <Icon className="size-[18px]" />
               {label}
-            </span>
+            </a>
           ))}
         </nav>
 
         {/* bas de sidebar */}
         <div className="mt-auto flex flex-col gap-1 pt-4">
-          <span className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground">
+          <a
+            href={APP}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/[0.03] hover:text-foreground"
+          >
             <Settings className="size-[18px]" /> Gérer mon compte
-          </span>
-          <span className="flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground">
+          </a>
+          <a
+            href={SITE}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-white/[0.03] hover:text-foreground"
+          >
             <Sparkles className="size-[18px]" /> Faire une suggestion
-          </span>
-          <span className="mt-2 flex items-center justify-center gap-2 rounded-full bg-[#0049c6] py-2.5 text-sm font-medium text-white">
+          </a>
+          <a
+            href={APP}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-[#0049c6] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0049c6]/90"
+          >
             <LogOut className="size-4" /> Déconnexion
-          </span>
+          </a>
         </div>
 
         {/* poignée de repli décorative */}
