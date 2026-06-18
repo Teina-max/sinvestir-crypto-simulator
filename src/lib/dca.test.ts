@@ -141,4 +141,76 @@ describe("simulate — cas limites", () => {
     expect(r.quantity).toBeCloseTo(2, 8);
     expect(r.finalValue).toBeCloseTo(100, 6);
   });
+
+  test("montant NaN → résultat zéro (garde Number.isFinite)", () => {
+    const r = simulate({
+      prices: flatPrices(5, 100),
+      amount: Number.NaN,
+      frequency: "once",
+      from: 0,
+      to: 4 * DAY,
+    });
+    expect(r.invested).toBe(0);
+    expect(Number.isNaN(r.invested)).toBe(false);
+  });
+});
+
+describe("simulate — cohérence KPI / série (régression P0)", () => {
+  test("historique clairsemé : l'investi des KPI = celui du dernier point de la série", () => {
+    // Prix au jour 0 et au jour 40 ; analyse jusqu'au jour 35 (dans un trou).
+    const prices: PricePoint[] = [
+      { t: 0, price: 100 },
+      { t: 40 * DAY, price: 100 },
+    ];
+    const r = simulate({
+      prices,
+      amount: 10,
+      frequency: "daily",
+      from: 0,
+      to: 35 * DAY,
+    });
+    const lastPoint = r.series[r.series.length - 1];
+    // KPI et graphique ne doivent jamais diverger.
+    expect(lastPoint.invested).toBe(r.invested);
+    expect(r.periods).toBe(r.series.length === 0 ? 0 : r.periods);
+    // Aucun achat « hors graphique » : ici un seul point observé → un seul achat.
+    expect(r.periods).toBe(1);
+    expect(r.invested).toBe(10);
+  });
+
+  test("prix à 0 : compté ni dans periods ni dans invested", () => {
+    const prices: PricePoint[] = [
+      { t: 0, price: 0 },
+      { t: DAY, price: 100 },
+    ];
+    const r = simulate({
+      prices,
+      amount: 10,
+      frequency: "daily",
+      from: 0,
+      to: DAY,
+    });
+    // 2 dates d'achat, mais celle au prix 0 n'est pas exécutée.
+    expect(r.periods).toBe(1);
+    expect(r.invested).toBe(10);
+  });
+});
+
+describe("simulate — métriques de risque", () => {
+  test("doublement lump sum sur ~1 an → rendement annualisé ~100 %", () => {
+    const prices: PricePoint[] = [
+      { t: 0, price: 100 },
+      { t: Math.round(365.25 * DAY), price: 200 },
+    ];
+    const r = simulate({
+      prices,
+      amount: 100,
+      frequency: "once",
+      from: 0,
+      to: Math.round(365.25 * DAY),
+    });
+    expect(r.annualizedReturn).toBeGreaterThan(95);
+    expect(r.annualizedReturn).toBeLessThan(105);
+    expect(r.effectiveTo).toBe(Math.round(365.25 * DAY));
+  });
 });

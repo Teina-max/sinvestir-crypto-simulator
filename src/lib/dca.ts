@@ -11,6 +11,13 @@
  * d'être testable indépendamment de la source de données.
  */
 
+import {
+  annualizedReturn,
+  annualizedVolatility,
+  maxDrawdown,
+  type CashFlow,
+} from "./metrics";
+
 export type Frequency = "once" | "daily" | "weekly" | "monthly";
 
 export const FREQUENCIES: { value: Frequency; label: string }[] = [
@@ -55,24 +62,51 @@ export interface SimulationPoint {
 export interface SimulationResult {
   /** Capital total investi (EUR). */
   invested: number;
-  /** Nombre d'achats réalisés. */
+  /** Nombre d'achats réellement exécutés. */
   periods: number;
   /** Quantité totale de crypto acquise. */
   quantity: number;
   /** Prix moyen d'acquisition (invested / quantity). */
   averagePrice: number;
-  /** Valeur finale du portefeuille à la date de fin. */
+  /** Valeur finale du portefeuille à la date de fin effective. */
   finalValue: number;
   /** Plus/moins-value totale (finalValue − invested). */
   pnl: number;
   /** Performance en % (ROI simple, non annualisé). */
   performance: number;
+  /** Rendement annualisé pondéré par les flux (TRI), en %. */
+  annualizedReturn: number;
+  /** Plus forte baisse de l'actif sur la période (max drawdown), en % positif. */
+  maxDrawdown: number;
+  /** Volatilité annualisée de l'actif, en %. */
+  volatility: number;
+  /** Dernière date réellement valorisée (peut être < `to` si l'historique s'arrête avant). */
+  effectiveTo: number;
   /** Série temporelle pour le graphique. */
   series: SimulationPoint[];
+  /** Versements exécutés (date + montant), pour les comparaisons benchmark. */
+  contributions: { t: number; amount: number }[];
   frequency: Frequency;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const EMPTY = (frequency: Frequency): SimulationResult => ({
+  invested: 0,
+  periods: 0,
+  quantity: 0,
+  averagePrice: 0,
+  finalValue: 0,
+  pnl: 0,
+  performance: 0,
+  annualizedReturn: 0,
+  maxDrawdown: 0,
+  volatility: 0,
+  effectiveTo: 0,
+  series: [],
+  contributions: [],
+  frequency,
+});
 
 /**
  * Prix au timestamp `t` : dernier point connu à cette date ou avant.
@@ -99,7 +133,6 @@ function addMonths(t: number, n: number): number {
   const target = new Date(
     Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1, 0, 0, 0, 0)
   );
-  // Borne le jour au dernier jour du mois cible (ex. 31 janv + 1 mois → 28/29 févr).
   const lastDay = new Date(
     Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)
   ).getUTCDate();
@@ -131,43 +164,49 @@ export function buyDates(from: number, to: number, frequency: Frequency): number
  */
 export function simulate(input: SimulationInput): SimulationResult {
   const { prices, amount, frequency } = input;
-  const empty: SimulationResult = {
-    invested: 0,
-    periods: 0,
-    quantity: 0,
-    averagePrice: 0,
-    finalValue: 0,
-    pnl: 0,
-    performance: 0,
-    series: [],
-    frequency,
-  };
-  if (prices.length === 0 || amount <= 0) return empty;
+  if (
+    prices.length === 0 ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    !Number.isFinite(input.from) ||
+    !Number.isFinite(input.to)
+  ) {
+    return EMPTY(frequency);
+  }
 
   // Borne la période à l'historique réellement disponible.
   const from = Math.max(input.from, prices[0].t);
   const to = Math.min(input.to, prices[prices.length - 1].t);
-  if (to < from) return empty;
+  if (to < from) return EMPTY(frequency);
 
-  const buys = buyDates(from, to, frequency);
-  if (buys.length === 0) return empty;
-
-  // Achats triés : à chaque date, on convertit `amount` € en quantité.
-  const buyEvents = buys.map((t) => ({ t, price: priceAt(prices, t) }));
-
-  // Série temporelle alignée sur les points de prix de la période.
+  // Fenêtre de prix réellement observés sur la période.
   const window = prices.filter((p) => p.t >= from && p.t <= to);
+  if (window.length === 0) return EMPTY(frequency);
+  const effectiveTo = window[window.length - 1].t;
+
+  // Les achats sont bornés au dernier prix observé : ainsi les KPI et la série
+  // ne divergent jamais (aucun achat « hors graphique »).
+  const buys = buyDates(from, effectiveTo, frequency).map((t) => ({
+    t,
+    price: priceAt(prices, t),
+  }));
+
   const series: SimulationPoint[] = [];
+  const flows: CashFlow[] = [];
+  const contributions: { t: number; amount: number }[] = [];
   let invested = 0;
   let quantity = 0;
+  let executed = 0;
   let bi = 0;
   for (const point of window) {
-    // Exécute tous les achats dont la date est atteinte à ce point.
-    while (bi < buyEvents.length && buyEvents[bi].t <= point.t) {
-      const buy = buyEvents[bi];
+    while (bi < buys.length && buys[bi].t <= point.t) {
+      const buy = buys[bi];
       if (buy.price > 0) {
         quantity += amount / buy.price;
         invested += amount;
+        executed++;
+        flows.push({ t: buy.t, amount: -amount });
+        contributions.push({ t: buy.t, amount });
       }
       bi++;
     }
@@ -182,29 +221,25 @@ export function simulate(input: SimulationInput): SimulationResult {
     });
   }
 
-  // Solde des achats éventuellement postérieurs au dernier point de la fenêtre.
-  while (bi < buyEvents.length) {
-    const buy = buyEvents[bi];
-    if (buy.price > 0) {
-      quantity += amount / buy.price;
-      invested += amount;
-    }
-    bi++;
-  }
-
-  const finalPrice = window.length > 0 ? window[window.length - 1].price : 0;
+  const finalPrice = window[window.length - 1].price;
   const finalValue = quantity * finalPrice;
   const pnl = finalValue - invested;
+  flows.push({ t: effectiveTo, amount: finalValue });
 
   return {
     invested,
-    periods: buyEvents.length,
+    periods: executed,
     quantity,
     averagePrice: quantity > 0 ? invested / quantity : 0,
     finalValue,
     pnl,
     performance: invested > 0 ? (pnl / invested) * 100 : 0,
+    annualizedReturn: annualizedReturn(flows),
+    maxDrawdown: maxDrawdown(window),
+    volatility: annualizedVolatility(window),
+    effectiveTo,
     series,
+    contributions,
     frequency,
   };
 }

@@ -39,6 +39,14 @@ export function formatPercent(n: number): string {
   })} %`;
 }
 
+/** Pourcentage en magnitude (sans signe), 1 décimale : "75,4 %". */
+export function formatPercentAbs(n: number): string {
+  return `${Math.abs(n).toLocaleString("fr-FR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })} %`;
+}
+
 /** Quantité de crypto, 8 décimales avec signe (ex. "+23,11405370"). */
 export function formatCrypto(n: number): string {
   return `+${n.toLocaleString("fr-FR", {

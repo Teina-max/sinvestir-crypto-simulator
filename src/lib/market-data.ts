@@ -98,7 +98,10 @@ export async function fetchHistory(
   const points: { t: number; price: number }[] = [];
   for (let i = 0; i < timestamps.length; i++) {
     const price = closes[i];
-    if (price != null) points.push({ t: timestamps[i] * 1000, price });
+    // Yahoo renvoie parfois null/0/aberrations sur les paires peu liquides.
+    if (price != null && Number.isFinite(price) && price > 0) {
+      points.push({ t: timestamps[i] * 1000, price });
+    }
   }
   if (points.length === 0) throw new Error(`Yahoo ${pair} série vide`);
   return points;
