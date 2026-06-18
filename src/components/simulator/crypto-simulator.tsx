@@ -149,7 +149,7 @@ export function CryptoSimulator({ embedded }: CryptoSimulatorProps) {
         <header className="flex flex-col items-center gap-4 text-center">
           <EyebrowBadge>Les simulateurs S&apos;investir</EyebrowBadge>
           <SectionTitle>Simulateur Crypto</SectionTitle>
-          <p className="text-base font-medium text-[#4d9fff] sm:text-lg">
+          <p className="text-base font-medium text-[#1098f7] sm:text-lg">
             Et si vous aviez investi en cryptomonnaie&nbsp;?
           </p>
           <p className="mx-auto max-w-2xl text-sm leading-relaxed text-muted-foreground">

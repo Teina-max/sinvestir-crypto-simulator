@@ -67,7 +67,7 @@ export function SimulatorResults({
   const signClass = isGain ? "text-gain" : "text-loss";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center gap-3">
         <span className="h-6 w-1 rounded-full bg-[#1098f7]" />
         <h2 className="font-heading text-2xl font-normal">Vos résultats</h2>
@@ -109,7 +109,7 @@ export function SimulatorResults({
       </div>
 
       {/* Indicateurs de risque */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-4">
         <ResultCard label="Perf. annualisée" info="Rendement annuel pondéré par les flux (TRI).">
           <p className={cn("mt-1 text-xl font-light tabular-nums", signClass)}>
             {formatPercent(result.annualizedReturn)}

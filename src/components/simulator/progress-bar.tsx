@@ -19,11 +19,16 @@ export function ProgressBar({
     return (
       <div>
         <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
-          <span style={{ width: `${investedPct}%` }} className="bg-[#2b7fff]" />
-          <span style={{ width: `${100 - investedPct}%` }} className="bg-gain" />
+          <span style={{ width: `${investedPct}%`, background: "#1098f7" }} />
+          <span
+            style={{
+              width: `${100 - investedPct}%`,
+              background: "linear-gradient(90deg, #f0b100, #00c950)",
+            }}
+          />
         </div>
         <Legend
-          left={{ label: "Somme investie", value: invested, color: "#2b7fff" }}
+          left={{ label: "Somme investie", value: invested, color: "#1098f7" }}
           right={{ label: "Plus-value", value: pnl, color: "var(--gain)" }}
         />
       </div>
