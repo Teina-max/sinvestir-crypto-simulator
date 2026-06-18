@@ -1,9 +1,8 @@
 "use client";
 
+import { Info } from "lucide-react";
 import type { Coin } from "@/lib/market-data";
 import { FREQUENCIES, type Frequency } from "@/lib/dca";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -31,50 +30,82 @@ interface SimulatorFormProps extends FormState {
   onToChange: (d: string) => void;
 }
 
-const fieldLabel = "text-sm font-medium text-foreground";
+/** Un champ en style « underline » S'investir : label + ⓘ, valeur, unité à droite. */
+function Field({
+  label,
+  info,
+  unit,
+  children,
+}: {
+  label: string;
+  info?: string;
+  unit?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-[#7899ce]/25 pb-2.5">
+      <div className="mb-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <span>{label}</span>
+        {info && (
+          <span title={info}>
+            <Info className="size-3.5 opacity-50" aria-hidden />
+          </span>
+        )}
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">{children}</div>
+        {unit && (
+          <span className="shrink-0 pb-0.5 text-sm font-medium text-muted-foreground">
+            {unit}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const bigInput =
+  "w-full bg-transparent text-2xl font-light text-white outline-none placeholder:text-muted-foreground/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-calendar-picker-indicator]:opacity-50 [&::-webkit-calendar-picker-indicator]:invert";
 
 export function SimulatorForm(props: SimulatorFormProps) {
   const isRecurring = props.frequency !== "once";
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
-        <Label className={fieldLabel}>Cryptomonnaie</Label>
+    <div className="space-y-7">
+      <Field label="Cryptomonnaie" info="Choisissez parmi le top 100 par capitalisation.">
         <CoinCombobox
           coins={props.coins}
           value={props.coinId}
           onChange={props.onCoinChange}
           loading={props.coinsLoading}
         />
-      </div>
+      </Field>
 
-      <div className="space-y-2">
-        <Label htmlFor="amount" className={fieldLabel}>
-          Montant {isRecurring ? "par versement" : "investi"}
-        </Label>
-        <div className="relative">
-          <Input
-            id="amount"
-            type="number"
-            min={1}
-            inputMode="decimal"
-            value={Number.isNaN(props.amount) ? "" : props.amount}
-            onChange={(e) => props.onAmountChange(Number(e.target.value))}
-            className="h-11 rounded-md border-input bg-input/20 pr-9 text-base"
-          />
-          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
-            €
-          </span>
-        </div>
-      </div>
+      <Field
+        label={isRecurring ? "Montant par versement" : "Montant investi"}
+        info="Montant investi à chaque échéance."
+        unit="EUR"
+      >
+        <input
+          type="number"
+          min={1}
+          inputMode="decimal"
+          aria-label="Montant"
+          value={Number.isNaN(props.amount) ? "" : props.amount}
+          onChange={(e) => props.onAmountChange(Number(e.target.value))}
+          className={bigInput}
+        />
+      </Field>
 
-      <div className="space-y-2">
-        <Label className={fieldLabel}>Fréquence d&apos;investissement</Label>
+      <Field label="Fréquence d'investissement" info="Achat unique ou investissement programmé (DCA).">
         <Select
           value={props.frequency}
           onValueChange={(v) => props.onFrequencyChange(v as Frequency)}
         >
-          <SelectTrigger className="h-11 w-full rounded-md border-input bg-input/20">
+          <SelectTrigger
+            aria-label="Fréquence"
+            className="h-auto w-full border-0 bg-transparent p-0 text-2xl font-light text-white shadow-none hover:bg-transparent focus-visible:ring-0 dark:bg-transparent dark:hover:bg-transparent [&_svg]:opacity-50"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -85,35 +116,29 @@ export function SimulatorForm(props: SimulatorFormProps) {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </Field>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="min-w-0 space-y-2">
-          <Label htmlFor="from" className={fieldLabel}>
-            Depuis
-          </Label>
-          <Input
-            id="from"
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Depuis" unit="">
+          <input
             type="date"
+            aria-label="Date de début"
             value={props.from}
             max={props.to}
             onChange={(e) => props.onFromChange(e.target.value)}
-            className="h-11 w-full min-w-0 rounded-md border-input bg-input/20"
+            className={`${bigInput} text-base sm:text-lg`}
           />
-        </div>
-        <div className="min-w-0 space-y-2">
-          <Label htmlFor="to" className={fieldLabel}>
-            Jusqu&apos;au
-          </Label>
-          <Input
-            id="to"
+        </Field>
+        <Field label="Jusqu'au" unit="">
+          <input
             type="date"
+            aria-label="Date de fin"
             value={props.to}
             min={props.from}
             onChange={(e) => props.onToChange(e.target.value)}
-            className="h-11 w-full min-w-0 rounded-md border-input bg-input/20"
+            className={`${bigInput} text-base sm:text-lg`}
           />
-        </div>
+        </Field>
       </div>
     </div>
   );

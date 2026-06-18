@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import type { SimulationPoint } from "@/lib/dca";
+import { downsample } from "@/lib/series";
 import { formatDate, formatEUR, formatMonthYear } from "@/lib/format";
 import {
   ChartContainer,
@@ -13,20 +14,22 @@ import {
 const config = {
   value: { label: "Valeur du portefeuille", color: "var(--chart-1)" },
   invested: { label: "Investi cumulé", color: "var(--chart-2)" },
+  benchmark: { label: "Livret A", color: "#f0b100" },
 } satisfies ChartConfig;
 
-/** Réduit la série à ~220 points max pour un rendu fluide. */
-function downsample(series: SimulationPoint[], max = 220): SimulationPoint[] {
-  if (series.length <= max) return series;
-  const step = Math.ceil(series.length / max);
-  const out = series.filter((_, i) => i % step === 0);
-  const last = series[series.length - 1];
-  if (out[out.length - 1]?.t !== last.t) out.push(last);
-  return out;
+type ChartPoint = SimulationPoint & { benchmark?: number };
+
+interface PerformanceChartProps {
+  series: SimulationPoint[];
+  /** Série de référence (livret A) alignée sur `series`, optionnelle. */
+  benchmark?: { t: number; value: number }[];
 }
 
-export function PerformanceChart({ series }: { series: SimulationPoint[] }) {
-  const data = useMemo(() => downsample(series), [series]);
+export function PerformanceChart({ series, benchmark }: PerformanceChartProps) {
+  const data = useMemo<ChartPoint[]>(() => {
+    const merged = series.map((p, i) => ({ ...p, benchmark: benchmark?.[i]?.value }));
+    return downsample(merged);
+  }, [series, benchmark]);
 
   if (data.length === 0) return null;
 
@@ -72,6 +75,17 @@ export function PerformanceChart({ series }: { series: SimulationPoint[] }) {
           strokeDasharray="4 3"
           isAnimationActive={false}
         />
+        {benchmark && benchmark.length > 0 && (
+          <Area
+            dataKey="benchmark"
+            type="monotone"
+            stroke="#f0b100"
+            strokeWidth={1.5}
+            strokeDasharray="2 3"
+            fill="none"
+            isAnimationActive={false}
+          />
+        )}
         <Area
           dataKey="value"
           type="monotone"
@@ -87,7 +101,7 @@ export function PerformanceChart({ series }: { series: SimulationPoint[] }) {
 
 interface TooltipProps {
   active?: boolean;
-  payload?: { payload: SimulationPoint }[];
+  payload?: { payload: ChartPoint }[];
 }
 
 function ChartTooltipBody({ active, payload }: TooltipProps) {
@@ -99,6 +113,9 @@ function ChartTooltipBody({ active, payload }: TooltipProps) {
       <p className="mb-1.5 font-medium text-foreground">{formatDate(p.t)}</p>
       <Row label="Valeur" value={formatEUR(p.value)} dot="var(--chart-1)" />
       <Row label="Investi" value={formatEUR(p.invested)} dot="var(--chart-2)" />
+      {p.benchmark != null && (
+        <Row label="Livret A" value={formatEUR(p.benchmark)} dot="#f0b100" />
+      )}
       <p
         className="mt-1 border-t border-white/10 pt-1 tabular-nums"
         style={{ color: gain ? "var(--gain)" : "var(--loss)" }}

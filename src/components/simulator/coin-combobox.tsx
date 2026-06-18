@@ -35,22 +35,27 @@ export function CoinCombobox({ coins, value, onChange, loading }: CoinComboboxPr
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           role="combobox"
           aria-expanded={open}
+          aria-label="Cryptomonnaie"
           disabled={loading || coins.length === 0}
-          className="h-11 w-full justify-between rounded-md border-input bg-input/20 px-3 font-normal hover:bg-input/30"
+          className="h-auto w-full justify-between border-0 bg-transparent p-0 font-light hover:bg-transparent dark:hover:bg-transparent"
         >
           {selected ? (
-            <span className="flex items-center gap-2 truncate">
+            <span className="flex items-center gap-2.5 truncate">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={selected.image} alt="" className="size-5 rounded-full" />
-              <span className="truncate">{selected.name}</span>
-              <span className="text-muted-foreground">{selected.symbol}</span>
+              <img src={selected.image} alt="" className="size-6 rounded-full" />
+              <span className="truncate text-2xl font-light text-white">
+                {selected.name}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {selected.symbol}
+              </span>
             </span>
           ) : (
-            <span className="text-muted-foreground">
-              {loading ? "Chargement…" : "Choisir une cryptomonnaie"}
+            <span className="text-2xl font-light text-muted-foreground/60">
+              {loading ? "Chargement…" : "Choisir…"}
             </span>
           )}
           <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
