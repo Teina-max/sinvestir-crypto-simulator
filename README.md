@@ -31,27 +31,47 @@ Aucune variable d'environnement requise pour la démo. Une seule est reconnue, o
 ```
 src/
 ├─ app/
-│  ├─ page.tsx                 # Vitrine : header S'investir + hero + simulateur + footer
+│  ├─ page.tsx                 # Simulateur dans l'app-shell S'investir (sidebar + contenu)
 │  ├─ embed/page.tsx           # Version nue pour embarquement iframe
+│  ├─ icon.svg                 # Favicon (blason S'investir)
 │  └─ api/crypto/
 │     ├─ coins/route.ts        # Proxy liste des cryptos
 │     └─ history/route.ts      # Proxy historique de prix (par ticker)
 ├─ components/
-│  ├─ simulator/               # Le composant et ses sous-parties
-│  │  ├─ crypto-simulator.tsx  #   orchestrateur (état, fetch, calcul, layout)
-│  │  ├─ simulator-form.tsx    #   panneau de saisie
-│  │  ├─ simulator-results.tsx #   résumé + KPI + graphique
+│  ├─ simulator/               # Le simulateur et ses sous-parties
+│  │  ├─ crypto-simulator.tsx  #   orchestrateur (état, fetch, calcul, partage)
+│  │  ├─ section-title.tsx     #   titre centré à traits décoratifs
+│  │  ├─ simulator-form.tsx    #   saisie en style « underline »
+│  │  ├─ simulator-results.tsx #   « Vos résultats » : KPI, risque, récap, comparaison
+│  │  ├─ result-card.tsx       #   carte de résultat réutilisable
+│  │  ├─ progress-bar.tsx      #   barre de progression bicolore
 │  │  ├─ coin-combobox.tsx     #   sélecteur de crypto avec recherche
-│  │  ├─ kpi-cards.tsx         #   les 5 chiffres clés
-│  │  └─ performance-chart.tsx #   graphique d'évolution (Recharts)
-│  ├─ site/                    # Header, footer, logo
+│  │  ├─ simulator-charts.tsx  #   onglets Évolution / Gains-pertes
+│  │  ├─ performance-chart.tsx #   valeur vs investi (+ ligne Livret A)
+│  │  └─ pnl-chart.tsx         #   plus/moins-value (vert/rouge)
+│  ├─ site/                    # App-shell, logo, badge animé
 │  └─ ui/                      # Primitives shadcn/ui
 └─ lib/
-   ├─ dca.ts                   # Moteur de calcul (pur, testé)
-   ├─ dca.test.ts              # 12 tests unitaires du moteur
+   ├─ dca.ts                   # Moteur de calcul DCA/lump-sum (pur, testé)
+   ├─ metrics.ts               # TRI annualisé, max drawdown, volatilité (pur, testé)
+   ├─ benchmark.ts             # Comparaison à un placement à taux fixe (Livret A, inflation)
+   ├─ series.ts                # Downsample des séries pour le rendu
    ├─ market-data.ts           # Accès serveur aux données de marché
-   └─ format.ts                # Formatage localisé fr-FR
+   ├─ format.ts                # Formatage localisé fr-FR
+   └─ *.test.ts                # 24 tests unitaires (moteur + métriques)
 ```
+
+---
+
+## Fonctionnalités
+
+- **Backtest DCA / achat unique** sur données historiques réelles, recalcul en temps réel.
+- **Indicateurs de risque** : performance annualisée (TRI pondéré par les flux), volatilité annualisée, max drawdown — pour ne pas montrer que le gain.
+- **Comparaison à un placement sans risque** (Livret A 3 %/an, inflation 2 %/an), à versements identiques, dans les chiffres et sur le graphique.
+- **Deux graphiques** : évolution (valeur vs investi + ligne Livret A) et plus/moins-value (vert/rouge).
+- **Partage par URL** : « Partager mes résultats » encode la simulation dans le lien (restauré au chargement). « Enregistrer » persiste en local.
+- **Fidélité DA S'investir** : app-shell (sidebar), titre à traits, badge à bordure animée, inputs underline, barre bicolore, palette/typo relevées sur leur DOM.
+- **Responsive** desktop/mobile + route **`/embed`** embarquable.
 
 ---
 
@@ -111,5 +131,6 @@ import { CryptoSimulator } from "@/components/simulator/crypto-simulator";
 ## Limites (démo assumée)
 
 - Sélection limitée au **top 100** des cryptos (hors stablecoins) ; certains actifs de longue traîne sans paire Yahoo `-EUR` renvoient un message clair plutôt qu'un plantage.
-- Pas de persistance ni de partage de simulation (la suite réelle le fait via Supabase — hors périmètre de ce test).
-- Performance affichée en **ROI simple**, comme l'outil d'origine (non annualisée).
+- Partage par **URL** + sauvegarde **localStorage** (la suite réelle persiste via Supabase + comptes — hors périmètre de ce test).
+- La sidebar (profil, navigation) est une **réplique visuelle** de l'app-shell S'investir, non fonctionnelle (le simulateur est l'élément livrable, conçu pour s'insérer dans leur shell réel).
+- Les benchmarks (Livret A 3 %, inflation 2 %) utilisent des **taux fixes illustratifs**.
